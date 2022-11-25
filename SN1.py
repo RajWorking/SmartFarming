@@ -69,7 +69,7 @@ def D2D():
     Sig = (x + iot.priv_key * int(m.hexdigest(), 16)) % q
 
     print("Sending Message...")
-    input()
+    # input()
 
     data = {'TID': iot.TID,
             'X': {
@@ -129,7 +129,7 @@ def D2D():
     SKV = int(m.hexdigest(), 16)
 
     print("Sending Message...")
-    input()
+    # input()
 
     data = {
         'SKV': SKV,

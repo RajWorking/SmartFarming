@@ -99,7 +99,7 @@ def D2D():
     Sig = (y + iot.priv_key * int(m.hexdigest(), 16)) % q
 
     print("Sending Message...")
-    input()
+    # input()
 
     data = {'TID': iot.TID,
             'Y': {
