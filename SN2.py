@@ -43,13 +43,13 @@ def D2D():
 
     ############################
 
-    print("Recieved Message: ")
     data = recvMsg(s)
+    print("Recieved Message: ")
     print(data)
     print()
 
-    TS2 = int(datetime.now().timestamp())
-    if (abs(TS2 - data["TS"]) > dT):
+    TS = int(datetime.now().timestamp())
+    if (abs(TS - data["TS"]) > dT):
         print("Took too long!! Try again.")
         return
 
@@ -71,16 +71,74 @@ def D2D():
     print("---------------------------------\n")
     ############################
 
-    TS2 = int(datetime.now().timestamp())
     r = random.randint(1, q)
+    TS = int(datetime.now().timestamp())
+
+    m = hashlib.sha256()
+    m.update(iot.TID.to_bytes(qL, 'big'))
+    m.update(bytes.fromhex(iot.RID))
+    m.update(bytes.fromhex(iot.TC))
+    m.update(r.to_bytes(qL, 'big'))
+    m.update(iot.priv_key.to_bytes(qL, 'big'))
+    m.update(TS.to_bytes(qL, 'big'))
+    y = int(m.hexdigest(), 16) % q
+
+    Y = keys.get_public_key(y, curve.P256)
+
+    SK = y * pointX
+
+    m = hashlib.sha256()
+    m.update(iot.TID.to_bytes(qL, 'big'))
+    m.update(data["TID"].to_bytes(qL, 'big'))
+    m.update(iot.pub_key.x.to_bytes(qL, 'big'))
+    m.update(iot.pub_key.y.to_bytes(qL, 'big'))
+    m.update(SK.x.to_bytes(qL, 'big'))
+    m.update(SK.y.to_bytes(qL, 'big'))
+    m.update(TS.to_bytes(qL, 'big'))
+
+    Sig = (y + iot.priv_key * int(m.hexdigest(), 16)) % q
 
     print("Sending Message...")
-    data = {'sig': 1234,
-            'msg': 5678,
-            'pk': (34, 67)}
-    sendMsg(s, data)
-    print()
+    input()
 
+    data = {'TID': iot.TID,
+            'Y': {
+                'x': Y.x,
+                'y': Y.y
+            },
+            'Sig': Sig,
+            'Pub': {
+                'x': iot.pub_key.x,
+                'y': iot.pub_key.y
+            },
+            'TS': TS}
+    sendMsg(s, data)
+
+    print("---------------------------------\n")
+    ############################
+
+    data = recvMsg(s)
+    print("Recieved Message: ")
+    print(data)
+    print()
+    
+    TS = int(datetime.now().timestamp())
+    if (abs(TS - data["TS"]) > dT):
+        print("Took too long!! Try again.")
+        return
+    
+    m = hashlib.sha256()
+    m.update(SK.x.to_bytes(qL, 'big'))
+    m.update(SK.y.to_bytes(qL, 'big'))
+    m.update(data["TS"].to_bytes(qL, 'big'))
+
+    if(data["SKV"] != int(m.hexdigest(), 16)):
+        print("Incorrect Session Key Verifier!! Try again.")
+        return
+    
+    print("Successfully established Session Key.")
+    
+    ############################
     s.close()
 
 
@@ -92,7 +150,7 @@ cred = (obj['RID'], obj['TID'], obj['TC'])
 key = (obj['pr'], point.Point(obj['Pub']['x'], obj['Pub']['y']))
 
 iot = SN(cred, key)
-print(iot.pub_key)
+print(iot.pub_key, "\n")
 
 
 if __name__ == '__main__':

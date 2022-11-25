@@ -42,10 +42,7 @@ def D2D():
     s = socket.socket()
     s.bind(('', int(argv[1])))
     s.listen(1)
-
-    conn, addr = s.accept()
-    # print("Client connected: ", addr)
-    # print()
+    conn, _ = s.accept()
 
     ############################
 
@@ -72,6 +69,8 @@ def D2D():
     Sig = (x + iot.priv_key * int(m.hexdigest(), 16)) % q
 
     print("Sending Message...")
+    input()
+
     data = {'TID': iot.TID,
             'X': {
                 'x': X.x,
@@ -88,11 +87,59 @@ def D2D():
     print("---------------------------------\n")
     ############################
 
-    print("Recieved Message: ")
     data = recvMsg(conn)
+    print("Recieved Message: ")
     print(data)
     print()
 
+    TS = int(datetime.now().timestamp())
+    if (abs(TS - data["TS"]) > dT):
+        print("Took too long!! Try again.")
+        return
+
+    pointY = point.Point(data["Y"]["x"], data["Y"]["y"])
+    pointPub = point.Point(data["Pub"]["x"], data["Pub"]["y"])
+
+    SK = x * pointY
+
+    m = hashlib.sha256()
+    m.update(data["TID"].to_bytes(qL, 'big'))
+    m.update(iot.TID.to_bytes(qL, 'big'))
+    m.update(data["Pub"]["x"].to_bytes(qL, 'big'))
+    m.update(data["Pub"]["y"].to_bytes(qL, 'big'))
+    m.update(SK.x.to_bytes(qL, 'big'))
+    m.update(SK.y.to_bytes(qL, 'big'))
+    m.update(data["TS"].to_bytes(qL, 'big'))
+
+    if (keys.get_public_key(data["Sig"], curve.P256) != (pointY + int(m.hexdigest(), 16) * pointPub)):
+        print("Failed to verify Signature! Try again.")
+        return
+
+    print("Signature Verified.")
+
+    print("---------------------------------\n")
+    ############################
+
+    TS = int(datetime.now().timestamp())
+    m = hashlib.sha256()
+    m.update(SK.x.to_bytes(qL, 'big'))
+    m.update(SK.y.to_bytes(qL, 'big'))
+    m.update(TS.to_bytes(qL, 'big'))
+
+    SKV = int(m.hexdigest(), 16)
+
+    print("Sending Message...")
+    input()
+
+    data = {
+        'SKV': SKV,
+        'TS': TS,
+    }
+    sendMsg(conn, data)
+    
+    print("Successfully established Session Key.")
+    
+    ############################
     conn.close()
 
 
@@ -104,7 +151,7 @@ cred = (obj['RID'], obj['TID'], obj['TC'])
 key = (obj['pr'], point.Point(obj['Pub']['x'], obj['Pub']['y']))
 
 iot = SN(cred, key)
-print(iot.pub_key)
+print(iot.pub_key, "\n")
 
 if __name__ == '__main__':
     D2D()
