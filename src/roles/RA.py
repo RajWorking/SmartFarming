@@ -1,11 +1,8 @@
-
-
-import numpy as np
-from fastecdsa import keys, curve, point
+from fastecdsa import keys, curve
 import random
 import hashlib
 from datetime import datetime
-from config import *
+from src.config import *
 
 
 class RA:
@@ -39,23 +36,3 @@ class RA:
         TC = m.hexdigest()
 
         return ((RID, TID, TC), (priv_key, pub_key))
-
-
-class IOT_device:
-    """
-    This class contains code for IoT Smart Device
-    """
-
-    def __init__(self, id, key):
-        """
-        id: (RID, TID, TC)
-        key: (priv_key, pub_key)
-        """
-        RID, TID, TC = id
-        priv_key, pub_key = key
-
-        self.RID = RID
-        self.TID = TID
-        self.TC = TC
-        self.priv_key = priv_key
-        self.pub_key = pub_key

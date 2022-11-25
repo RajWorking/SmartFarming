@@ -1,5 +1,5 @@
-from roles import RA
-from config import *
+from src.roles import RA
+from src.config import *
 import numpy as np
 import json
 
