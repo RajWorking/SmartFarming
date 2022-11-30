@@ -63,14 +63,14 @@ class SN:
                     'y': self.pub_key.y
                 },
                 'TS': TS}
-        sendMsgConn(conn, data)
+        sendMsg(conn, data)
 
         print("---------------------------------\n")
         ############################
 
-        data = recvMsgConn(conn)
+        data = recvMsg(conn)
         print("Recieved Message: ")
-        print(data)
+        print(json.dumps(data, indent=2))
         print()
 
         TS = int(datetime.now().timestamp())
@@ -116,15 +116,15 @@ class SN:
             'SKV': SKV,
             'TS': TS,
         }
-        sendMsgConn(conn, data)
+        sendMsg(conn, data)
 
         keys.export_key(SK, curve=curve.P256, filepath=sessionkey_path)
         print("Successfully established Session Key.")
 
     def D2D_respond(self, s, sessionkey_path):
-        data = recvMsgSocket(s)
+        data = recvMsg(s)
         print("Recieved Message: ")
-        print(data)
+        print(json.dumps(data, indent=2))
         print()
 
         TS = int(datetime.now().timestamp())
@@ -191,14 +191,14 @@ class SN:
                     'y': self.pub_key.y
                 },
                 'TS': TS}
-        sendMsgSocket(s, data)
+        sendMsg(s, data)
 
         print("---------------------------------\n")
         ############################
 
-        data = recvMsgSocket(s)
+        data = recvMsg(s)
         print("Recieved Message: ")
-        print(data)
+        print(json.dumps(data, indent=2))
         print()
 
         TS = int(datetime.now().timestamp())
@@ -214,11 +214,11 @@ class SN:
         if (data["SKV"] != int(m.hexdigest(), 16)):
             print("Incorrect Session Key Verifier!! Try again.")
             return
-        
+
         keys.export_key(SK, curve=curve.P256, filepath=sessionkey_path)
         print("Successfully established Session Key.")
 
-    def D2G_initiate(self, conn):
+    def D2G_initiate(self, s, sessionkey_path):
         p = random.randint(1, q)
         TS = int(datetime.now().timestamp())
 
@@ -235,14 +235,14 @@ class SN:
         m.update(p.to_bytes(qL, 'big'))
         m.update(bytes.fromhex(self.RID))
         m.update(TS.to_bytes(qL, 'big'))
-        x = int(m.hexdigest(), 16)
+        y_s = int(m.hexdigest(), 16)
         m = hashlib.sha256()
         m.update(bytes.fromhex(self.TC))
         m.update(self.TID.to_bytes(qL, 'big'))
         m.update(bytes.fromhex(self.RID))
         m.update(TS.to_bytes(qL, 'big'))
 
-        x ^= int(m.hexdigest(), 16)
+        x = y_s ^ int(m.hexdigest(), 16)
 
         m = hashlib.sha256()
         m.update(x.to_bytes(qL, 'big'))
@@ -258,66 +258,114 @@ class SN:
         input()
 
         data = {'TID': self.TID,
+                'RID': self.RID,
+                'TC': self.TC,
+                'Pub': {
+                    'x': self.pub_key.x,
+                    'y': self.pub_key.y,
+                },
                 'A': {
                     'x': A.x,
                     'y': A.y
                 },
                 'x': x,
                 'Sig': Sig,
-                'TS': TS}
-        sendMsgConn(conn, data)
+                'TS': TS,
+                }
+        sendMsg(s, data)
 
         print("---------------------------------\n")
         ############################
 
-        # data = recvMsgConn(conn)
-        # print("Recieved Message: ")
-        # print(data)
-        # print()
+        data = recvMsg(s)
+        print("Recieved Message: ")
+        print(json.dumps(data, indent=2))
+        print()
 
-        # TS = int(datetime.now().timestamp())
-        # if (abs(TS - data["TS"]) > dT):
-        #     print("Took too long!! Try again.")
-        #     return
+        TSg = int(datetime.now().timestamp())
+        if (abs(TSg - data["TS"]) > dT):
+            print("Took too long!! Try again.")
+            return
 
-        # pointB = point.Point(data["B"]["x"], data["B"]["y"])
-        # pointPub = point.Point(data["Pub"]["x"], data["Pub"]["y"])
+        pointB = point.Point(data["B"]["x"], data["B"]["y"])
+        pointPub = point.Point(data["Pub"]["x"], data["Pub"]["y"])
 
-        # SK = x * pointB
+        DK = a * pointB
 
-        # m = hashlib.sha256()
-        # m.update(data["TID"].to_bytes(qL, 'big'))
-        # m.update(self.TID.to_bytes(qL, 'big'))
-        # m.update(data["Pub"]["x"].to_bytes(qL, 'big'))
-        # m.update(data["Pub"]["y"].to_bytes(qL, 'big'))
-        # m.update(SK.x.to_bytes(qL, 'big'))
-        # m.update(SK.y.to_bytes(qL, 'big'))
-        # m.update(data["TS"].to_bytes(qL, 'big'))
+        m = hashlib.sha256()
+        m.update(data["TID"].to_bytes(qL, 'big'))
+        m.update(bytes.fromhex(self.TC))
+        m.update(TS.to_bytes(qL, 'big'))
+        m.update(data["TS"].to_bytes(qL, 'big'))
+        m.update(bytes.fromhex(self.RID))
 
-        # if (keys.get_public_key(data["Sig"], curve.P256) != (pointY + int(m.hexdigest(), 16) * pointPub)):
-        #     print("Failed to verify Signature! Try again.")
-        #     return
+        z = data["y"] ^ int(m.hexdigest(), 16)
 
-        # print("Signature Verified.")
+        m = hashlib.sha256()
+        m.update(DK.x.to_bytes(qL, 'big'))
+        m.update(DK.y.to_bytes(qL, 'big'))
+        m.update(y_s.to_bytes(qL, 'big'))
+        m.update(z.to_bytes(qL, 'big'))
 
-        # print("---------------------------------\n")
-        # ############################
+        SK = int(m.hexdigest(), 16) % q
 
-        # TS = int(datetime.now().timestamp())
-        # m = hashlib.sha256()
-        # m.update(SK.x.to_bytes(qL, 'big'))
-        # m.update(SK.y.to_bytes(qL, 'big'))
-        # m.update(TS.to_bytes(qL, 'big'))
+        m = hashlib.sha256()
+        m.update(self.TID.to_bytes(qL, 'big'))
+        m.update(data["TID"].to_bytes(qL, 'big'))
+        m.update(bytes.fromhex(self.TC))
+        m.update(data["y"].to_bytes(qL, 'big'))
+        m.update(pointPub.x.to_bytes(qL, 'big'))
+        m.update(pointPub.y.to_bytes(qL, 'big'))
+        m.update(data["TS"].to_bytes(qL, 'big'))
 
-        # SKV = int(m.hexdigest(), 16)
+        if (keys.get_public_key(data["Sig"], curve.P256) != (pointB + int(m.hexdigest(), 16) * pointPub)):
+            print("Failed to verify Signature! Try again.")
+            return
 
-        # print("Sending Message...")
+        print("Signature Verified.")
+
+        print("---------------------------------\n")
+        ############################
+
+        m = hashlib.sha256()
+        m.update(SK.to_bytes(qL, 'big'))
+        m.update(data["TS"].to_bytes(qL, 'big'))
+        TID_new = data["TID_s"] ^ int(m.hexdigest(), 16)
+
+        self.TID = TID_new
+
+        cred_json = {
+            "RID": self.RID,
+            "TID": self.TID,
+            "TC": self.TC,
+            "pr": self.priv_key,
+            "Pub": {
+                "x": self.pub_key.x,
+                "y": self.pub_key.y,
+            }
+        }
+
+        with open('keys.json', 'w') as f:
+            f.write(json.dumps(cred_json))
+
+        ############################
+
+        TS = int(datetime.now().timestamp())
+        m = hashlib.sha256()
+        m.update(SK.to_bytes(qL, 'big'))
+        m.update(self.TID.to_bytes(qL, 'big'))
+        m.update(TS.to_bytes(qL, 'big'))
+
+        SKV = int(m.hexdigest(), 16)
+
+        print("Sending Message...\n")
         # input()
 
-        # data = {
-        #     'SKV': SKV,
-        #     'TS': TS,
-        # }
-        # sendMsgConn(conn, data)
+        data = {
+            'SKV': SKV,
+            'TS': TS,
+        }
+        sendMsg(s, data)
 
-        # print("Successfully established Session Key.")
+        keys.export_key(SK, curve=curve.P256, filepath=sessionkey_path)
+        print("Successfully established Session Key.")

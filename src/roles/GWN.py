@@ -18,15 +18,15 @@ class GWN:
         key: (priv_key, pub_key)
         sensors: [(RIDs, TIDs, TCs)]
         """
-        ((self.RID, self.TID), self.sensors) = id
+        self.RID, self.TID, self.sensors = id
 
         self.priv_key = random.randint(1, q)
         self.pub_key = keys.get_public_key(self.priv_key, curve.P256)
 
-    def D2D_respond(self, s):
-        data = recvMsgSocket(s)
+    def D2D_respond(self, conn, sessionkey_path):
+        data = recvMsg(conn)
         print("Recieved Message: ")
-        print(data)
+        print(json.dumps(data, indent=2))
         print()
 
         TS = int(datetime.now().timestamp())
@@ -36,7 +36,7 @@ class GWN:
 
         pointA = point.Point(data["A"]["x"], data["A"]["y"])
         pointPub = point.Point(data["Pub"]["x"], data["Pub"]["y"])
-        
+
         m = hashlib.sha256()
         m.update(data["x"].to_bytes(qL, 'big'))
         m.update(data["TID"].to_bytes(qL, 'big'))
@@ -54,69 +54,110 @@ class GWN:
         print("---------------------------------\n")
         # ############################
 
-        # r = random.randint(1, q)
-        # TS = int(datetime.now().timestamp())
+        m = hashlib.sha256()
+        m.update(bytes.fromhex(data["TC"]))
+        m.update(data["TID"].to_bytes(qL, 'big'))
+        m.update(bytes.fromhex(data["RID"]))
+        m.update(data["TS"].to_bytes(qL, 'big'))
 
-        # m = hashlib.sha256()
-        # m.update(self.TID.to_bytes(qL, 'big'))
-        # m.update(bytes.fromhex(self.RID))
-        # m.update(bytes.fromhex(self.TC))
-        # m.update(r.to_bytes(qL, 'big'))
-        # m.update(self.priv_key.to_bytes(qL, 'big'))
-        # m.update(TS.to_bytes(qL, 'big'))
-        # y = int(m.hexdigest(), 16) % q
+        y_s = data["x"] ^ int(m.hexdigest(), 16)
 
-        # Y = keys.get_public_key(y, curve.P256)
+        q_g = random.randint(1, q)
+        TS = int(datetime.now().timestamp())
 
-        # SK = y * pointX
+        m = hashlib.sha256()
+        m.update(self.TID.to_bytes(qL, 'big'))
+        m.update(q_g.to_bytes(qL, 'big'))
+        m.update(bytes.fromhex(data["RID"]))
+        m.update(TS.to_bytes(qL, 'big'))
+        b = int(m.hexdigest(), 16) % q
 
-        # m = hashlib.sha256()
-        # m.update(self.TID.to_bytes(qL, 'big'))
-        # m.update(data["TID"].to_bytes(qL, 'big'))
-        # m.update(self.pub_key.x.to_bytes(qL, 'big'))
-        # m.update(self.pub_key.y.to_bytes(qL, 'big'))
-        # m.update(SK.x.to_bytes(qL, 'big'))
-        # m.update(SK.y.to_bytes(qL, 'big'))
-        # m.update(TS.to_bytes(qL, 'big'))
+        B = keys.get_public_key(b, curve.P256)
+        DK = b * pointA
 
-        # Sig = (y + self.priv_key * int(m.hexdigest(), 16)) % q
+        m = hashlib.sha256()
+        m.update(self.priv_key.to_bytes(qL, 'big'))
+        m.update(self.TID.to_bytes(qL, 'big'))
+        m.update(bytes.fromhex(self.RID))
+        m.update(bytes.fromhex(data["TC"]))
+        m.update(TS.to_bytes(qL, 'big'))
+        z = int(m.hexdigest(), 16)
+        m = hashlib.sha256()
+        m.update(self.TID.to_bytes(qL, 'big'))
+        m.update(bytes.fromhex(data["TC"]))
+        m.update(data["TS"].to_bytes(qL, 'big'))
+        m.update(TS.to_bytes(qL, 'big'))
+        m.update(bytes.fromhex(data["RID"]))
 
-        # print("Sending Message...")
+        y_g = z ^ int(m.hexdigest(), 16)
+
+        m = hashlib.sha256()
+        m.update(DK.x.to_bytes(qL, 'big'))
+        m.update(DK.y.to_bytes(qL, 'big'))
+        m.update(y_s.to_bytes(qL, 'big'))
+        m.update(z.to_bytes(qL, 'big'))
+
+        SK = int(m.hexdigest(), 16) % q
+
+        TID_new = random.randint(1, q)
+
+        m = hashlib.sha256()
+        m.update(SK.to_bytes(qL, 'big'))
+        m.update(TS.to_bytes(qL, 'big'))
+
+        TID_s = TID_new ^ int(m.hexdigest(), 16)
+
+        m = hashlib.sha256()
+        m.update(data["TID"].to_bytes(qL, 'big'))
+        m.update(self.TID.to_bytes(qL, 'big'))
+        m.update(bytes.fromhex(data["TC"]))
+        m.update(y_g.to_bytes(qL, 'big'))
+        m.update(self.pub_key.x.to_bytes(qL, 'big'))
+        m.update(self.pub_key.y.to_bytes(qL, 'big'))
+        m.update(TS.to_bytes(qL, 'big'))
+
+        Sig = (b + self.priv_key * int(m.hexdigest(), 16)) % q
+
+        print("Sending Message...")
         # input()
 
-        # data = {'TID': self.TID,
-        #         'Y': {
-        #             'x': Y.x,
-        #             'y': Y.y
-        #         },
-        #         'Sig': Sig,
-        #         'Pub': {
-        #             'x': self.pub_key.x,
-        #             'y': self.pub_key.y
-        #         },
-        #         'TS': TS}
-        # sendMsgSocket(s, data)
+        data = {'Pub': {
+            'x': self.pub_key.x,
+            'y': self.pub_key.y
+        },
+            'TID': self.TID,
+            'B': {
+            'x': B.x,
+            'y': B.y
+        },
+            'y': y_g,
+            'Sig': Sig,
+            'TID_s': TID_s,
+            'TS': TS}
 
-        # print("---------------------------------\n")
-        # ############################
+        sendMsg(conn, data)
 
-        # data = recvMsgSocket(s)
-        # print("Recieved Message: ")
-        # print(data)
-        # print()
+        print("---------------------------------\n")
+        ############################
 
-        # TS = int(datetime.now().timestamp())
-        # if (abs(TS - data["TS"]) > dT):
-        #     print("Took too long!! Try again.")
-        #     return
+        data = recvMsg(conn)
+        print("Recieved Message: ")
+        print(json.dumps(data, indent=2))
+        print()
 
-        # m = hashlib.sha256()
-        # m.update(SK.x.to_bytes(qL, 'big'))
-        # m.update(SK.y.to_bytes(qL, 'big'))
-        # m.update(data["TS"].to_bytes(qL, 'big'))
+        TS = int(datetime.now().timestamp())
+        if (abs(TS - data["TS"]) > dT):
+            print("Took too long!! Try again.")
+            return
 
-        # if (data["SKV"] != int(m.hexdigest(), 16)):
-        #     print("Incorrect Session Key Verifier!! Try again.")
-        #     return
+        m = hashlib.sha256()
+        m.update(SK.to_bytes(qL, 'big'))
+        m.update(TID_new.to_bytes(qL, 'big'))
+        m.update(data["TS"].to_bytes(qL, 'big'))
 
-        # print("Successfully established Session Key.")
+        if (data["SKV"] != int(m.hexdigest(), 16)):
+            print("Incorrect Session Key Verifier!! Try again.")
+            return
+
+        keys.export_key(SK, curve=curve.P256, filepath=sessionkey_path)
+        print("Successfully established Session Key.")

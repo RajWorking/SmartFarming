@@ -9,9 +9,7 @@ f = open('keysG.json', 'r')
 obj = json.load(f)
 f.close()
 
-cred = (obj['RID'], obj['TID'], obj['sensors'])
-
-gwn = GWN(cred)
+gwn = GWN((obj['RID'], obj['TID'], obj['sensors']))
 print(gwn.pub_key, "\n")
 
 ############################
@@ -21,6 +19,9 @@ s.bind(('', int(argv[1])))
 s.listen(1)
 conn, _ = s.accept()
 
-gwn.D2D_respond(s)
+sessionkey_path = 'key_SN1_GWN.pub'
+gwn.D2D_respond(conn, sessionkey_path)
+data = recvMsg(conn)
+decryptMsg(data, sessionkey_path)
 
 conn.close()

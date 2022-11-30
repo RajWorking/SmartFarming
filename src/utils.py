@@ -15,34 +15,20 @@ def recvall(sock, count):
     return buf
 
 
-def sendMsgConn(conn, msg):
+def sendMsg(pipe, msg):
     data = json.dumps(msg).encode()
     sz = len(data)
-    conn.send(sz.to_bytes(4, byteorder='big'))
-    conn.send(data)
+    pipe.send(sz.to_bytes(4, byteorder='big'))
+    pipe.send(data)
 
 
-def recvMsgConn(conn):
-    data = recvall(conn, 4)
+def recvMsg(pipe):
+    # works with socket s, connection conn
+    data = recvall(pipe, 4)
     if not data:
         return
     len = int.from_bytes(data, 'big')
-    data = json.loads(recvall(conn, len).decode())
-    return data
-
-
-def sendMsgSocket(s, msg):
-    sz = len(json.dumps(msg).encode())  # length of object
-    s.sendall(sz.to_bytes(4, byteorder='big'))
-    s.sendall(json.dumps(msg).encode())
-
-
-def recvMsgSocket(s):
-    data = recvall(s, 4)
-    if not data:
-        return
-    len = int.from_bytes(data, 'big')
-    data = json.loads(recvall(s, len).decode())
+    data = json.loads(recvall(pipe, len).decode())
     return data
 
 
@@ -66,7 +52,7 @@ def encryptMsg(key_file):
         'ciphertext': int.from_bytes(ciphertext, "big"),
         'tag': int.from_bytes(tag, "big")
     }
-    
+
     return data
 
 
