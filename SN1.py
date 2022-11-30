@@ -20,12 +20,15 @@ print(iot.pub_key, "\n")
 
 s = socket.socket()
 s.bind(('', int(argv[1])))
-s.listen(1)
+s.listen(2)
 conn, _ = s.accept()
 
-iot.D2D_initiate(conn)
+sessionkey_path = 'key_SN1_SN2.pub'
+iot.D2D_initiate(conn, sessionkey_path)
+data = recvMsgConn(conn)
+decryptMsg(data, sessionkey_path)
 
-sendEncryptMsg(conn, 'key_SN1_SN2.pub')
+# conn, _ = s.accept()
 
 # iot.D2G_initiate(conn)
 

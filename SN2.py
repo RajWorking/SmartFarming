@@ -19,8 +19,9 @@ print(iot.pub_key, "\n")
 s = socket.socket()
 s.connect(('127.0.0.1', int(argv[1])))  # 10.42.0.1
 
-iot.D2D_respond(s)
-
-recieveDecryptMsg(s, 'key_SN1_SN2.pub')
+sessionkey_path = 'key_SN1_SN2.pub'
+iot.D2D_respond(s, sessionkey_path)
+data = encryptMsg(sessionkey_path)
+sendMsgSocket(s, data)
 
 s.close()

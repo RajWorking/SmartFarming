@@ -46,7 +46,7 @@ def recvMsgSocket(s):
     return data
 
 
-def sendEncryptMsg(conn, key_file):
+def encryptMsg(key_file):
     with open('data.txt') as f:
         contents = f.read().encode()
 
@@ -66,13 +66,11 @@ def sendEncryptMsg(conn, key_file):
         'ciphertext': int.from_bytes(ciphertext, "big"),
         'tag': int.from_bytes(tag, "big")
     }
+    
+    return data
 
-    sendMsgConn(conn, data)
 
-
-def recieveDecryptMsg(s, key_file):
-    data = recvMsgSocket(s)
-
+def decryptMsg(data, key_file):
     _, session_key = keys.import_key(key_file)
     session_key = hashlib.sha256(encoding.pem.PEMEncoder.encode_public_key(
         session_key).encode()).digest()

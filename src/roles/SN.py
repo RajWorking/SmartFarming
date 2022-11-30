@@ -26,7 +26,7 @@ class SN:
         self.priv_key = priv_key
         self.pub_key = pub_key
 
-    def D2D_initiate(self, conn):
+    def D2D_initiate(self, conn, sessionkey_path):
         r = random.randint(1, q)
         TS = int(datetime.now().timestamp())
 
@@ -118,10 +118,10 @@ class SN:
         }
         sendMsgConn(conn, data)
 
-        keys.export_key(SK, curve=curve.P256, filepath='key_SN1_SN2.pub')
+        keys.export_key(SK, curve=curve.P256, filepath=sessionkey_path)
         print("Successfully established Session Key.")
 
-    def D2D_respond(self, s):
+    def D2D_respond(self, s, sessionkey_path):
         data = recvMsgSocket(s)
         print("Recieved Message: ")
         print(data)
@@ -215,7 +215,7 @@ class SN:
             print("Incorrect Session Key Verifier!! Try again.")
             return
         
-        keys.export_key(SK, curve=curve.P256, filepath='key_SN1_SN2.pub')
+        keys.export_key(SK, curve=curve.P256, filepath=sessionkey_path)
         print("Successfully established Session Key.")
 
     def D2G_initiate(self, conn):

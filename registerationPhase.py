@@ -1,12 +1,14 @@
 from src.roles import RA
 from src.config import *
-import numpy as np
 import json
 
 ra = RA.RA()
 
 iot_devices = []
 #############
+
+# number of IOT devices
+N = 2
 
 for i in range(1, N+1):
     cred = ra.SN_KeyGen()
