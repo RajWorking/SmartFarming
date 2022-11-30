@@ -1,5 +1,6 @@
 .idea/
 venv/
 __pycache__/
-keys1.json
-keys2.json
+device1/
+device2/
+gatewayDevice/

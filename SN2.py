@@ -1,6 +1,6 @@
 import socket
 import json
-from fastecdsa import point
+from fastecdsa import point, encoding
 from sys import argv
 
 from src.config import *
@@ -15,10 +15,12 @@ key = (obj['pr'], point.Point(obj['Pub']['x'], obj['Pub']['y']))
 
 iot = SN(cred, key)
 print(iot.pub_key, "\n")
-        
+
 s = socket.socket()
 s.connect(('127.0.0.1', int(argv[1])))  # 10.42.0.1
 
 iot.D2D_respond(s)
+
+recieveDecryptMsg(s, 'key_SN1_SN2.pub')
 
 s.close()

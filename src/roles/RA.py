@@ -14,7 +14,7 @@ class RA:
     def __init__(self):
         self.mk = random.randint(1, q)  # master key
 
-    def KeyGen(self):
+    def SN_KeyGen(self):
         ID = random.randint(1, q)
         TID = random.randint(1, q)
         s1 = random.randint(1, q)
@@ -36,3 +36,18 @@ class RA:
         TC = m.hexdigest()
 
         return ((RID, TID, TC), (priv_key, pub_key))
+    
+    def GWN_KeyGen(self):
+        ID = random.randint(1, q)
+        TID = random.randint(1, q)
+        g1 = random.randint(1, q)
+        RTS = int(datetime.now().timestamp())
+
+        m = hashlib.sha256()
+        m.update(ID.to_bytes(qL, 'big'))
+        m.update(g1.to_bytes(qL, 'big'))
+        m.update(self.mk.to_bytes(qL, 'big'))
+        m.update(RTS.to_bytes(qL, 'big'))
+        RID = m.hexdigest()
+
+        return ((RID, TID), [])

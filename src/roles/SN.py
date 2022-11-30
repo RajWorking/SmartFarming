@@ -6,6 +6,7 @@ from fastecdsa import keys, curve, point
 from src.config import *
 from src.utils import *
 
+
 class SN:
     """
     This class contains code for IoT Smart Device
@@ -24,8 +25,7 @@ class SN:
         self.TC = TC
         self.priv_key = priv_key
         self.pub_key = pub_key
-    
-    
+
     def D2D_initiate(self, conn):
         r = random.randint(1, q)
         TS = int(datetime.now().timestamp())
@@ -50,7 +50,7 @@ class SN:
         Sig = (x + self.priv_key * int(m.hexdigest(), 16)) % q
 
         print("Sending Message...")
-        # input()
+        input()
 
         data = {'TID': self.TID,
                 'X': {
@@ -117,10 +117,10 @@ class SN:
             'TS': TS,
         }
         sendMsgConn(conn, data)
-        
+
+        keys.export_key(SK, curve=curve.P256, filepath='key_SN1_SN2.pub')
         print("Successfully established Session Key.")
 
-        
     def D2D_respond(self, s):
         data = recvMsgSocket(s)
         print("Recieved Message: ")
@@ -200,21 +200,124 @@ class SN:
         print("Recieved Message: ")
         print(data)
         print()
-        
+
         TS = int(datetime.now().timestamp())
         if (abs(TS - data["TS"]) > dT):
             print("Took too long!! Try again.")
             return
-        
+
         m = hashlib.sha256()
         m.update(SK.x.to_bytes(qL, 'big'))
         m.update(SK.y.to_bytes(qL, 'big'))
         m.update(data["TS"].to_bytes(qL, 'big'))
 
-        if(data["SKV"] != int(m.hexdigest(), 16)):
+        if (data["SKV"] != int(m.hexdigest(), 16)):
             print("Incorrect Session Key Verifier!! Try again.")
             return
         
+        keys.export_key(SK, curve=curve.P256, filepath='key_SN1_SN2.pub')
         print("Successfully established Session Key.")
 
-    
+    def D2G_initiate(self, conn):
+        p = random.randint(1, q)
+        TS = int(datetime.now().timestamp())
+
+        m = hashlib.sha256()
+        m.update(self.TID.to_bytes(qL, 'big'))
+        m.update(p.to_bytes(qL, 'big'))
+        m.update(TS.to_bytes(qL, 'big'))
+
+        a = int(m.hexdigest(), 16)
+        A = keys.get_public_key(a, curve.P256)
+
+        m = hashlib.sha256()
+        m.update(self.priv_key.to_bytes(qL, 'big'))
+        m.update(p.to_bytes(qL, 'big'))
+        m.update(bytes.fromhex(self.RID))
+        m.update(TS.to_bytes(qL, 'big'))
+        x = int(m.hexdigest(), 16)
+        m = hashlib.sha256()
+        m.update(bytes.fromhex(self.TC))
+        m.update(self.TID.to_bytes(qL, 'big'))
+        m.update(bytes.fromhex(self.RID))
+        m.update(TS.to_bytes(qL, 'big'))
+
+        x ^= int(m.hexdigest(), 16)
+
+        m = hashlib.sha256()
+        m.update(x.to_bytes(qL, 'big'))
+        m.update(self.TID.to_bytes(qL, 'big'))
+        m.update(A.x.to_bytes(qL, 'big'))
+        m.update(A.y.to_bytes(qL, 'big'))
+        m.update(TS.to_bytes(qL, 'big'))
+        m.update(bytes.fromhex(self.TC))
+
+        Sig = (a + self.priv_key * int(m.hexdigest(), 16)) % q
+
+        print("Sending Message...")
+        input()
+
+        data = {'TID': self.TID,
+                'A': {
+                    'x': A.x,
+                    'y': A.y
+                },
+                'x': x,
+                'Sig': Sig,
+                'TS': TS}
+        sendMsgConn(conn, data)
+
+        print("---------------------------------\n")
+        ############################
+
+        # data = recvMsgConn(conn)
+        # print("Recieved Message: ")
+        # print(data)
+        # print()
+
+        # TS = int(datetime.now().timestamp())
+        # if (abs(TS - data["TS"]) > dT):
+        #     print("Took too long!! Try again.")
+        #     return
+
+        # pointB = point.Point(data["B"]["x"], data["B"]["y"])
+        # pointPub = point.Point(data["Pub"]["x"], data["Pub"]["y"])
+
+        # SK = x * pointB
+
+        # m = hashlib.sha256()
+        # m.update(data["TID"].to_bytes(qL, 'big'))
+        # m.update(self.TID.to_bytes(qL, 'big'))
+        # m.update(data["Pub"]["x"].to_bytes(qL, 'big'))
+        # m.update(data["Pub"]["y"].to_bytes(qL, 'big'))
+        # m.update(SK.x.to_bytes(qL, 'big'))
+        # m.update(SK.y.to_bytes(qL, 'big'))
+        # m.update(data["TS"].to_bytes(qL, 'big'))
+
+        # if (keys.get_public_key(data["Sig"], curve.P256) != (pointY + int(m.hexdigest(), 16) * pointPub)):
+        #     print("Failed to verify Signature! Try again.")
+        #     return
+
+        # print("Signature Verified.")
+
+        # print("---------------------------------\n")
+        # ############################
+
+        # TS = int(datetime.now().timestamp())
+        # m = hashlib.sha256()
+        # m.update(SK.x.to_bytes(qL, 'big'))
+        # m.update(SK.y.to_bytes(qL, 'big'))
+        # m.update(TS.to_bytes(qL, 'big'))
+
+        # SKV = int(m.hexdigest(), 16)
+
+        # print("Sending Message...")
+        # input()
+
+        # data = {
+        #     'SKV': SKV,
+        #     'TS': TS,
+        # }
+        # sendMsgConn(conn, data)
+
+        # print("Successfully established Session Key.")

@@ -25,4 +25,8 @@ conn, _ = s.accept()
 
 iot.D2D_initiate(conn)
 
+sendEncryptMsg(conn, 'key_SN1_SN2.pub')
+
+# iot.D2G_initiate(conn)
+
 conn.close()
