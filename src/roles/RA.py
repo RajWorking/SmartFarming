@@ -37,7 +37,7 @@ class RA:
 
         return ((RID, TID, TC), (priv_key, pub_key))
     
-    def GWN_KeyGen(self):
+    def Server_KeyGen(self):
         ID = random.randint(1, q)
         TID = random.randint(1, q)
         g1 = random.randint(1, q)

@@ -9,21 +9,19 @@ from src.utils import *
 
 class GWN:
     """
-    This class contains code for IoT Smart Device
+    This class contains code for Gateway Node
     """
 
-    def __init__(self, id):
+    def __init__(self, id, keypair):
         """
         id: (RID, TID)
-        key: (priv_key, pub_key)
+        keypair: (priv_key, pub_key)
         sensors: [(RIDs, TIDs, TCs)]
         """
         self.RID, self.TID, self.sensors = id
+        self.priv_key, self.pub_key = keypair
 
-        self.priv_key = random.randint(1, q)
-        self.pub_key = keys.get_public_key(self.priv_key, curve.P256)
-
-    def D2D_respond(self, conn, sessionkey_path):
+    def D2G_respond(self, conn, sessionkey_path):
         data = recvMsg(conn)
         print("Recieved Message: ")
         print(json.dumps(data, indent=2))

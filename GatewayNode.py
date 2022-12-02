@@ -4,12 +4,14 @@ from sys import argv
 
 from src.config import *
 from src.roles.GWN import *
+from src.ElGamal import *
 
-f = open('keysG.json', 'r')
+f = open('cred_G.json', 'r')
 obj = json.load(f)
 f.close()
 
-gwn = GWN((obj['RID'], obj['TID'], obj['sensors']))
+priv_key, pub_key = keys.import_key('GWN.key')
+gwn = GWN((obj['RID'], obj['TID'], obj['sensors']), (priv_key, pub_key))
 print(gwn.pub_key, "\n")
 
 ############################
@@ -20,8 +22,22 @@ s.listen(1)
 conn, _ = s.accept()
 
 sessionkey_path = 'key_SN1_GWN.pub'
-gwn.D2D_respond(conn, sessionkey_path)
+gwn.D2G_respond(conn, sessionkey_path)
 data = recvMsg(conn)
 decryptMsg(data, sessionkey_path)
 
 conn.close()
+
+############################
+
+s = socket.socket()
+s.connect(('127.0.0.1', int(argv[2])))  # 10.42.0.1
+
+publickey_path = 'ES.pub'
+data = ElGamal.encrypt(publickey_path)
+
+print(json.dumps(data, indent=2))
+
+sendMsg(s, data)
+
+s.close()
