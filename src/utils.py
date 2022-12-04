@@ -33,41 +33,54 @@ def recvMsg(pipe):
 
 
 def encryptMsg(key_file):
-    with open('data.txt') as f:
-        contents = f.read().encode()
-
+    with open('data.txt', 'rb') as f:
+        plain = f.read()
+    enc_data = list()
     _, session_key = keys.import_key(key_file)
     session_key = hashlib.sha256(encoding.pem.PEMEncoder.encode_public_key(
         session_key).encode()).digest()
+    while len(plain) > 0:
+        if len(plain) > 8:
+            contents = plain[:8]
+        else:
+            contents = plain
+        plain = plain[len(contents):]
+        print(contents)
 
-    cipher = AES.new(session_key, AES.MODE_EAX)
-    nonce = cipher.nonce
-    ciphertext, tag = cipher.encrypt_and_digest(contents)
+        cipher = AES.new(session_key, AES.MODE_EAX)
+        nonce = cipher.nonce
+        ciphertext, tag = cipher.encrypt_and_digest(contents)
 
-    data = {
-        'nonceLen': len(nonce),
-        'ciphertextLen': len(ciphertext),
-        'tagLen': len(tag),
-        'nonce': int.from_bytes(nonce, "big"),
-        'ciphertext': int.from_bytes(ciphertext, "big"),
-        'tag': int.from_bytes(tag, "big")
-    }
+        data = {
+            'nonceLen': len(nonce),
+            'ciphertextLen': len(ciphertext),
+            'tagLen': len(tag),
+            'nonce': int.from_bytes(nonce, "big"),
+            'ciphertext': int.from_bytes(ciphertext, "big"),
+            'tag': int.from_bytes(tag, "big")
+        }
 
-    return data
+        enc_data.append(data)
+
+    return enc_data
 
 
-def decryptMsg(data, key_file):
+def decryptMsg(data_list, key_file):
     _, session_key = keys.import_key(key_file)
     session_key = hashlib.sha256(encoding.pem.PEMEncoder.encode_public_key(
-        session_key).encode()).digest()
-
-    cipher = AES.new(session_key, AES.MODE_EAX,
-                     nonce=data["nonce"].to_bytes(data["nonceLen"], "big"))
-    contents = cipher.decrypt(
-        data["ciphertext"].to_bytes(data["ciphertextLen"], "big"))
-    try:
-        cipher.verify(data["tag"].to_bytes(data["tagLen"], "big"))
-        with open('data.txt', 'w') as f:
-            f.write(contents.decode())
-    except ValueError:
-        print("Key incorrect or message corrupted")
+            session_key).encode()).digest()
+    plain = bytes()
+    for data in data_list:
+        cipher = AES.new(session_key, AES.MODE_EAX,
+                        nonce=data["nonce"].to_bytes(data["nonceLen"], "big"))
+        contents = cipher.decrypt(
+            data["ciphertext"].to_bytes(data["ciphertextLen"], "big"))
+        try:
+            cipher.verify(data["tag"].to_bytes(data["tagLen"], "big"))
+            plain += contents
+        except ValueError:
+            print("Key incorrect or message corrupted")
+    
+    with open('data.txt', 'wb') as f:
+                f.write(plain)
+        

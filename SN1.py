@@ -6,7 +6,7 @@ from sys import argv
 from src.config import *
 from src.roles.SN import *
 
-f = open('keys.json', 'r')
+f = open('keys1.json', 'r')
 obj = json.load(f)
 f.close()
 
@@ -19,7 +19,7 @@ print(iot.pub_key, "\n")
 ############################
 
 s = socket.socket()
-s.bind(('', int(argv[1])))
+s.bind((argv[1], int(argv[2])))
 s.listen(1)
 
 conn, _ = s.accept()
@@ -33,7 +33,7 @@ conn.close()
 ############################
 
 s = socket.socket()
-s.connect(('127.0.0.1', int(argv[2])))  # 10.42.0.1
+s.connect((argv[3], int(argv[4])))  # 10.42.0.1
 
 sessionkey_path = 'key_SN1_GWN.pub'
 iot.D2G_initiate(s, sessionkey_path)
