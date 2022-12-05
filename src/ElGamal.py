@@ -101,15 +101,15 @@ class ElGamal:
                 msg = message
                 msg_len = len(msg)
             message = message[msg_len:]
-            print('msg {}'.format(msg))
+            # print('msg {}'.format(msg))
 
             # convert the message into an integer
             msg_int = int.from_bytes(msg, byteorder='big')
-            print('msg_int {}'.format(msg_int))
+            # print('msg_int {}'.format(msg_int))
 
             # embedd msg len in the msg
             msg_int = msg_int * int(1e6) + msg_len
-            print('msg_int: {}'.format(msg_int))
+            # print('msg_int: {}'.format(msg_int))
 
             # convert the message(in int form) to EC point
             M, l = mtp(msg_int)
@@ -146,7 +146,7 @@ class ElGamal:
 
             msg_int = ptm(M, l)
 
-            print('msg_int {}'.format(msg_int))
+            # print('msg_int {}'.format(msg_int))
 
             msg_len = msg_int % int(1e6)
             msg_int = msg_int // int(1e6)

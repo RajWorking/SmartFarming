@@ -20,6 +20,8 @@ print(iot.pub_key, "\n")
 
 s = socket.socket()
 s.bind((argv[1], int(argv[2])))
+
+# while True:
 s.listen(1)
 
 conn, _ = s.accept()
@@ -38,6 +40,7 @@ s.connect((argv[3], int(argv[4])))  # 10.42.0.1
 sessionkey_path = 'key_SN1_GWN.pub'
 iot.D2G_initiate(s, sessionkey_path)
 data = encryptMsg(sessionkey_path)
+print('Sending Data to Gateway node')
 sendMsg(s, data)
-
+print('Data sent')
 s.close()

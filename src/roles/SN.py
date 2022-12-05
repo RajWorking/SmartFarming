@@ -198,7 +198,7 @@ class SN:
 
         data = recvMsg(s)
         print("Recieved Message: ")
-        print(json.dumps(data, indent=2))
+        # print(json.dumps(data, indent=2))
         print()
 
         TS = int(datetime.now().timestamp())

@@ -14,4 +14,4 @@ b = curve.P256.b
 qL = 32
 
 # delta T (s)
-dT = 10
+dT = 100000000

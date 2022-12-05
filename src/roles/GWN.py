@@ -28,6 +28,8 @@ class GWN:
         print()
 
         TS = int(datetime.now().timestamp())
+        print("diff", abs(TS - data["TS"]))
+        print("dt", dT)
         if (abs(TS - data["TS"]) > dT):
             print("Took too long!! Try again.")
             return

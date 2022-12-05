@@ -45,7 +45,7 @@ def encryptMsg(key_file):
         else:
             contents = plain
         plain = plain[len(contents):]
-        print(contents)
+        # print(contents)
 
         cipher = AES.new(session_key, AES.MODE_EAX)
         nonce = cipher.nonce
